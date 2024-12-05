@@ -1,214 +1,170 @@
 from tkinter import *
-from random import choice
+from  random import choice
+import time
 
-class Pole(object):
-    def __init__(self, master, row, column):
-        self.button = Button(master, text='   ')
-        self.mine = False
-        self.value = 0
-        self.viewed = False
-        self.flag = 0
-        self.around = []
-        self.clr = 'black'
-        self.bg = None
-        self.row = row
-        self.column = column
+frm = []; btn = []
+xBtn = 16; yBtn = 16
+playTime = 0
+mines = xBtn * yBtn * 10 // 64
+imgMark = '\u2661'; imgMine = '\u2665'
+playArea = []; nMoves = 0; mrk=0
+tk = Tk()
+tk.title('Внимание, Мины!')
+tk.geometry(str(44*xBtn)+'x'+str(44*yBtn+10))
 
-    def viewAround(self):
-        return self.around
+def play(n):
+    global xBtn, yBtn, mines, nMoves, mrk, playTime
+    if len(playArea) < xBtn*yBtn:
+        return()
+    nMoves += 1
+    if nMoves == 1:
+        playTime = time.time()
+        i = 0
+        while i<mines:
+            j = choice(range(0, xBtn*yBtn))
+            if j != n and playArea[j] != -1:
+                playArea[j] = -1
+                i += 1
+        for i in range(0, xBtn*yBtn):
+            if playArea[i] != -1:
+                k = 0
+                if i not in range(0, xBtn*yBtn, xBtn):
+                    if playArea[i-1] == -1: k += 1
+                    if i > xBtn-1:
+                        if playArea[i-xBtn-1] == -1: k += 1
+                    if i < xBtn*yBtn-xBtn:
+                        if playArea[i+xBtn-1] == -1: k += 1
+                if i not in range(-1, xBtn*yBtn, xBtn):
+                    if playArea[i+1] == -1: k += 1
+                    if i > xBtn-1:
+                        if playArea[i-xBtn+1] == -1: k += 1
+                    if i < xBtn*yBtn-xBtn:
+                        if playArea[i+xBtn+1] == -1: k += 1
+                if i > xBtn-1:
+                    if playArea[i-xBtn] == -1: k += 1
+                if i < xBtn*yBtn-xBtn:
+                    if playArea[i+xBtn] == -1: k += 1
+                playArea[i] = k
+    if btn[n].cget('text') == imgMark:
+        mrk -= 1
+        tk.title('Внимание, '+str(mines-mrk)+' Мин!')
+    btn[n].config(text=playArea[n], state=DISABLED, bg='white')
+    if playArea[n] == 0:
+        btn[n].config(text=' ', bg='#ccb')
+    elif playArea[n] == -1:
+        btn[n].config(text=imgMine)
+        if nMoves <= (xBtn*yBtn - mines) or mines >= mrk:
+            nMoves = 32000
+            chainReaction(0)
+            tk.title('Игра окончена.')
+    if nMoves == (xBtn*yBtn - mines) and mines == mrk:
+        tk.title('Ты выиграл! '+str(int(time.time() - playTime))+' сек')
+        winner(0)
 
-    def setAround(self):
-        if self.row == 0:
-            self.around.append([self.row + 1, self.column])
-            if self.column == 0:
-                self.around.append([self.row, self.column + 1])
-                self.around.append([self.row + 1, self.column + 1])
-            elif self.column == len(buttons[self.row]) - 1:
-                self.around.append([self.row, self.column - 1])
-                self.around.append([self.row + 1, self.column - 1])
-            else:
-                self.around.append([self.row, self.column - 1])
-                self.around.append([self.row, self.column + 1])
-                self.around.append([self.row + 1, self.column + 1])
-                self.around.append([self.row + 1, self.column - 1])
-        elif self.row == len(buttons) - 1:
-            self.around.append([self.row - 1, self.column])
-            if self.column == 0:
-                self.around.append([self.row, self.column + 1])
-                self.around.append([self.row - 1, self.column + 1])
-            elif self.column == len(buttons[self.row]) - 1:
-                self.around.append([self.row, self.column - 1])
-                self.around.append([self.row - 1, self.column - 1])
-            else:
-                self.around.append([self.row, self.column - 1])
-                self.around.append([self.row, self.column + 1])
-                self.around.append([self.row - 1, self.column + 1])
-                self.around.append([self.row - 1, self.column - 1])
+def chainReaction(j):
+    if j <= len(playArea):
+        for i in range(j, xBtn*yBtn):
+            if playArea[i] == -1 and btn[i].cget('text') == ' ':
+                btn[i].config(text=imgMine)
+                btn[i].flash()
+                tk.bell()
+                tk.after(50, chainReaction, i + 1)
+                break
+
+def winner(j):
+    if j <= len(playArea):
+        for i in range(j, xBtn*yBtn):
+            if playArea[i] == 0:
+                btn[i].config(state=NORMAL, text='☺')
+                btn[i].flash()
+                tk.bell()
+                btn[i].config(text=' ', state=DISABLED)
+                tk.after(50, winner, i + 1)
+                break
+
+def marker(n):
+    global mrk, mines, playTime
+    if (btn[n].cget('state')) != 'disabled':
+        if btn[n].cget('text') == imgMark:
+            btn[n].config(text=' ')
+            mrk -= 1
         else:
-            self.around.append([self.row - 1, self.column])
-            self.around.append([self.row + 1, self.column])
-            if self.column == 0:
-                self.around.append([self.row, self.column + 1])
-                self.around.append([self.row + 1, self.column + 1])
-                self.around.append([self.row - 1, self.column + 1])
-            elif self.column == len(buttons[self.row]) - 1:
-                self.around.append([self.row, self.column - 1])
-                self.around.append([self.row + 1, self.column - 1])
-                self.around.append([self.row - 1, self.column - 1])
-            else:
-                self.around.append([self.row, self.column - 1])
-                self.around.append([self.row, self.column + 1])
-                self.around.append([self.row + 1, self.column + 1])
-                self.around.append([self.row + 1, self.column - 1])
-                self.around.append([self.row - 1, self.column + 1])
-                self.around.append([self.row - 1, self.column - 1])
+            btn[n].config(text=imgMark, fg='blue')
+            mrk += 1
+        tk.title('Внимание, '+str(mines-mrk)+' Мин!')
+    if nMoves == (xBtn*yBtn - mines) and mines == mrk:
+        tk.title('Ты выиграл! '+str(int(time.time() - playTime))+' сек')
+        winner(0)
 
-    def view(self, event):
-        if mines == []:
-            seter(0, self.around, self.row, self.column)
-        if self.value == 0:
-            self.clr = 'yellow'
-            self.value = None
-            self.bg = 'lightgrey'
-        elif self.value == 1:
-            self.clr = 'green'
-        elif self.value == 2:
-            self.clr = 'blue'
-        elif self.value == 3:
-            self.clr = 'red'
-        elif self.value == 4:
-            self.clr = 'purple'
+def newGame():
+    global xBtn, yBtn, mines, nMoves, mrk
+    mines = xBtn * yBtn * 10 // 64
+    nMoves = 0; mrk=0
+    playArea.clear()
+    if len(btn) != 0:
+        for i in range (0, len(btn)):
+            btn[i].destroy()
+        btn.clear()
+        for i in range (0, len(frm)):
+            frm[i].destroy()
+        frm.clear()
+    playground()
+    tk.title('Внимание, '+str(mines-mrk)+' Мин!')
 
-        if self.mine and not self.viewed and not self.flag:
-            self.button.configure(text='B', bg='red')
-            self.viewed = True
-            for q in mines:
-                buttons[q[0]][q[1]].view('<Button-1>')
-            lose()
+def set5x5():
+    global xBtn, yBtn
+    xBtn = 5; yBtn = 5
+    newGame()
 
-        elif not self.viewed and not self.flag:
-            self.button.configure(text=self.value, fg=self.clr, bg=self.bg)
-            self.viewed = True
-            if self.value == None:
-                for k in self.around:
-                    buttons[k[0]][k[1]].view('<Button-1>')
+def set8x8():
+    global xBtn, yBtn
+    xBtn = 8; yBtn = 8
+    newGame()
 
-    def setFlag(self, event):
-        if self.flag == 0 and not self.viewed:
-            self.flag = 1
-            self.button.configure(text='F', bg='yellow')
-            flags.append([self.row, self.column])
-        elif self.flag == 1:
-            self.flag = 2
-            self.button.configure(text='?', bg='blue')
-            flags.pop(flags.index([self.row, self.column]))
-        elif self.flag == 2:
-            self.flag = 0
-            self.button.configure(text='   ', bg='white')
-        if sorted(mines) == sorted(flags) and mines != []:
-            winer()
+def set10x14():
+    global xBtn, yBtn
+    xBtn = 10; yBtn = 14
+    newGame()
 
+def set16x16():
+    global xBtn, yBtn
+    xBtn = 16; yBtn = 16
+    newGame()
 
-def lose():
-    loseWindow = Tk()
-    loseWindow.title('Вы проиграли:-(')
-    loseWindow.geometry('300x100')
-    loseLabe = Label(loseWindow, text='В следующий раз повезет больше!')
-    loseLabe.pack()
-    mines = []
-    loseWindow.mainloop()
+def set32x32():
+    global xBtn, yBtn
+    xBtn = 32; yBtn = 32
+    newGame()
 
+def playground():
+    global xBtn, yBtn
+    for i in range(0, yBtn):
+        frm.append(Frame())
+        frm[i].pack(expand=YES, fill=BOTH)
+        for j in  range(0, xBtn):
+            btn.append(Button(frm[i], text=' ',font=('mono', 16, 'bold'),
+                              width=1, height=1, padx=0, pady=0))
+    for i in  range(0, xBtn*yBtn):
+        if xBtn*yBtn > 256:
+            btn[i].config(font=('mono', 8, 'normal'))
+        btn[i].config(command=lambda n=i: play(n))
+        btn[i].bind('<Button-3>', lambda event, n=i: marker(n))
+        btn[i].pack(side=LEFT, expand=YES, fill=BOTH, padx=0, pady=0)
+        btn[i].update()
+        playArea.append(0)
 
-def seter(q, around, row, column):
-    if q == bombs:
-        for i in buttons:
-            for j in i:
-                for k in j.around:
-                    if buttons[k[0]][k[1]].mine:
-                        buttons[buttons.index(i)][i.index(j)].value += 1
-        return
-    a = choice(buttons)
-    b = choice(a)
-    if [buttons.index(a), a.index(b)] not in mines and [
-            buttons.index(a), a.index(b)
-    ] not in around and [buttons.index(a), a.index(b)] != [row, column]:
-        b.mine = True
-        mines.append([buttons.index(a), a.index(b)])
-        seter(q + 1, around, row, column)
-    else:
-        seter(q, around, row, column)
+frmTop = Frame()
+frmTop.pack(expand=YES, fill=BOTH)
+Label(frmTop, text=' Новая игра:  ').pack(side=LEFT, expand=NO, fill=X, anchor=N)
+Button(frmTop, text='5x5', font=(16),
+       command=set5x5).pack(side=LEFT, expand=YES, fill=X, anchor=N)
+Button(frmTop, text='8x8', font=(16),
+       command=set8x8).pack(side=LEFT, expand=YES, fill=X, anchor=N)
+Button(frmTop, text='10x14', font=(16),
+       command=set10x14).pack(side=LEFT, expand=YES, fill=X, anchor=N)
+Button(frmTop, text='16x16', font=(16),
+       command=set16x16).pack(side=LEFT, expand=YES, fill=X, anchor=N)
+Button(frmTop, text='32x32', font=(16),
+       command=set32x32).pack(side=LEFT, expand=YES, fill=X, anchor=N)
 
-
-def winer():
-    winWindow = Tk()
-    winWindow.geometry('300x100')
-    winWindow.title('Вы победили!')
-    winLabe = Label(winWindow, text='Поздравляем!')
-    winLabe.pack()
-    winWindow.mainloop()
-
-
-def cheat(event):
-    for t in mines:
-        buttons[t[0]][t[1]].setFlag('<Button-1>')
-
-
-def game(high, lenght):
-    root = Tk()
-    root.title('Сапер')
-    global buttons
-    global mines
-    global flags
-    flags = []
-    mines = []
-    buttons = [[Pole(root, row, column) for column in range(high)]
-               for row in range(lenght)]
-    for i in buttons:
-        for j in i:
-            j.button.grid(column=i.index(j),
-                          row=buttons.index(i),
-                          ipadx=7,
-                          ipady=1)
-            j.button.bind('<Button-1>', j.view)
-            j.button.bind('<Button-3>', j.setFlag)
-            j.setAround()
-    buttons[0][0].button.bind('<Control-Button-1>', cheat)
-    root.resizable(False, False)
-    root.mainloop()
-
-
-def bombcounter():
-    global bombs
-    if mineText.get('1.0', END) == '\n':
-        bombs = 10
-    else:
-        bombs = int(mineText.get('1.0', END))
-    if highText.get('1.0', END) == '\n':
-        high = 9
-    else:
-        high = int(highText.get('1.0', END))
-    if lenghtText.get('1.0', END) == '\n':
-        lenght = 9
-    else:
-        lenght = int(lenghtText.get('1.0', END))
-    game(high, lenght)
-
-
-settings = Tk()
-settings.title('Настройки')
-settings.geometry('200x150')
-mineText = Text(settings, width=5, height=1)
-mineLabe = Label(settings, height=1, text='Бомбы:')
-highText = Text(settings, width=5, height=1)
-highLabe = Label(settings, height=1, text='Ширина:')
-lenghtText = Text(settings, width=5, height=1)
-lenghtLabe = Label(settings, height=1, text='Высота:')
-mineBut = Button(settings, text='Начать:', command=bombcounter)
-mineBut.place(x=70, y=90)
-mineText.place(x=75, y=5)
-mineLabe.place(x=5, y=5)
-highText.place(x=75, y=30)
-highLabe.place(x=5, y=30)
-lenghtText.place(x=75, y=55)
-lenghtLabe.place(x=5, y=55)
-settings.mainloop()
+mainloop()
